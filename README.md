@@ -4,7 +4,7 @@ A program to divide an image to sub samples and replace them with desired photos
 
 ## Getting Started
 
-First you have to populate the **in** folder with the replacement images you desire and then run **listBuilder.py** with the following command:
+First you have to create and populate the **tiles** folder with the replacement images you desire and then run **listBuilder.py** with the following command:
 
 ```
 python listBuilder.py
