@@ -6,6 +6,32 @@ import math
 from PIL import Image
 from pathlib import Path
 
+class HelperOBJ:
+    def __init__(self, dataPath):
+        self.data = json.loads(open(dataPath).read())
+
+    def findNearestNeighbor(self, color, dominant=True):
+        r, g, b = color[0], color[1], color[2]
+        closest = None
+
+        for index, imgName in enumerate(self.data):
+            dom_color = self.data[imgName]['dominant_color']
+            avg_color = self.data[imgName]['average_color']
+            if dominant:
+                r_candit, g_candit, b_candit = dom_color[0], dom_color[1], dom_color[2]
+                closeness = math.sqrt((r-r_candit)**2 + (g-g_candit)**2 + (b-b_candit)**2)
+
+                if closest is None or closest[0] >= closeness:
+                    closest = [closeness, imgName]
+            else:
+                r_candit, g_candit, b_candit = avg_color[0], avg_color[1], avg_color[2]
+                closeness = math.sqrt((r-r_candit)**2 + (g-g_candit)**2 + (b-b_candit)**2)
+
+                if closest is None or closest[0] >= closeness:
+                    closest = [closeness, index]
+
+        return closest[1]
+
 def getAverageColor(img):
     return [img[:, :, i].mean() for i in range(img.shape[-1])]
 
@@ -27,9 +53,18 @@ def loadFileJSON(file):
 
     return json.loads(dataFileStr)
 
-def splitImg(imgName, splitByHorizontal, splitByVertical):
-    img = Image.open(imgName)
-    width, height = img.size
+def splitRow(input_picture, splitByHorizontal, splitByVertical):
+    width, boxH = input_picture.size
+    boxW = width/splitByHorizontal
+    width_steps = np.arange(0, width, boxW)
+    # height_steps = [boxH * x for x in range(0, splitByVertical)]
+    # width_steps = [boxW * x for x in range(0, splitByHorizontal)]
+    for j in width_steps: # range(0, width, int(boxW)):
+        box = (j, 0, j + boxW, boxH)
+        yield input_picture.crop(box)
+
+def splitImg(input_picture, splitByHorizontal, splitByVertical):
+    width, height = input_picture.size
     boxH, boxW = height/splitByVertical, width/splitByHorizontal
     height_steps = np.arange(0, height, boxH)
     width_steps = np.arange(0, width, boxW)
@@ -38,27 +73,4 @@ def splitImg(imgName, splitByHorizontal, splitByVertical):
     for i in height_steps: # range(0, height, int(boxH)):
         for j in width_steps: # range(0, width, int(boxW)):
             box = (j, i, j + boxW, i + boxH)
-            yield img.crop(box)
-
-def findNearestNeighbor(color, dominant=True, file=Path('./out/data.json')):
-    data = loadFileJSON(file)
-    r, g, b = color[0], color[1], color[2]
-    closest = None
-
-    for index, imgName in enumerate(data):
-        dom_color = data[imgName]['dominant_color']
-        avg_color = data[imgName]['average_color']
-        if dominant:
-            r_candit, g_candit, b_candit = dom_color[0], dom_color[1], dom_color[2]
-            closeness = math.sqrt((r-r_candit)**2 + (g-g_candit)**2 + (b-b_candit)**2)
-
-            if closest is None or closest[0] >= closeness:
-                closest = [closeness, imgName]
-        else:
-            r_candit, g_candit, b_candit = avg_color[0], avg_color[1], avg_color[2]
-            closeness = math.sqrt((r-r_candit)**2 + (g-g_candit)**2 + (b-b_candit)**2)
-
-            if closest is None or closest[0] >= closeness:
-                closest = [closeness, index]
-
-    return closest[1]
+            yield input_picture.crop(box)

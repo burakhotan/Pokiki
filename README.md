@@ -12,7 +12,7 @@ python listBuilder.py
 
 Which generates a JSON file with the information about the tiles.
 
-And then edit Program.py with the desired parameters (update coming soon to lessen the hassle). After editing and saving run it with:
+And then edit **Program.py** with the desired parameters (update coming soon to lessen the hassle). After editing and saving run it with:
 
 ```
 python Program.py
