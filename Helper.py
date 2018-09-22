@@ -57,9 +57,7 @@ def splitRow(input_picture, splitByHorizontal, splitByVertical):
     width, boxH = input_picture.size
     boxW = width/splitByHorizontal
     width_steps = np.arange(0, width, boxW)
-    # height_steps = [boxH * x for x in range(0, splitByVertical)]
-    # width_steps = [boxW * x for x in range(0, splitByHorizontal)]
-    for j in width_steps: # range(0, width, int(boxW)):
+    for j in width_steps:
         box = (j, 0, j + boxW, boxH)
         yield input_picture.crop(box)
 

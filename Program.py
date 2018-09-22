@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import Helper
 import cv2
 import numpy as np
@@ -6,15 +8,14 @@ from PIL import Image
 from multiprocessing import Pool
 import time
 from functools import partial
+import sys, getopt
 
 rootFolder = Path('./')
-picPath = rootFolder / 'in/ecem.jpg'
 tilesFolder = rootFolder / "tiles/"
-input_picture = Image.open(picPath)
 
 helperOBJ = Helper.HelperOBJ(Path('./out/data.json'))
 
-def buildRows(splitByHorizontal, splitByVertical, picture_section):
+def buildRows(splitByHorizontal, splitByVertical, quality, picture_section):
     columns = None
     columnCount = 0
     for count, img in enumerate(Helper.splitRow(picture_section, splitByHorizontal, splitByVertical)):
@@ -27,7 +28,7 @@ def buildRows(splitByHorizontal, splitByVertical, picture_section):
         
         windowW, windowH = img.size
         tile_pic = cv2.imread( str(tile_pic_path), cv2.IMREAD_COLOR)  
-        tile_pic = cv2.resize(tile_pic, (windowW*8, windowH*8))
+        tile_pic = cv2.resize(tile_pic, (windowW*quality, windowH*quality))
         # tile_pic = open_cv_IMG
         if columns is None:
             columns = tile_pic
@@ -50,12 +51,49 @@ def increase_brightness(img, value=30):
     img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
     return img
 
-if __name__=='__main__':
-    start = time.time()
+def main(argv):
+    inputfile = ''
+    outputfile = ''
+    
+    quality = 4
+    splitByHorizontal = 100
+    splitByVertical = 100
+    try:
+        opts, args = getopt.getopt(argv,"hx:y:i:o:q:",["help", "horizontal=","vertical=", "ifile=","ofile=", "quality="])
+    except getopt.GetoptError:
+        print('Unexpected Error, example usage:')
+        print ('test.py -i <inputfile> -o <outputfile> -x <horizontalDivide> -y <verticalDivide> -q <quality>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ('-h', "--help"):
+            print ('test.py -i <inputfile> -o <outputfile> -x <horizontalDivide> -y <verticalDivide> -q <quality>')
+            sys.exit()
+        elif opt in ("-i", "--ifile"):
+            inputfile = arg
+        elif opt in ("-o", "--ofile"):
+            outputfile = arg
+        elif opt in ("-x", "--horizontal"):
+            splitByHorizontal = int(arg)
+        elif opt in ("-y", "--vertical"):
+            splitByVertical = int(arg)
+        elif opt in ("-q", "--quality"):
+            quality = int(arg)
+        else:
+            print('Command not understood, example usage:')
+            print ('test.py -i <inputfile> -o <outputfile> -x <horizontalDivide> -y <verticalDivide> -q <quality>')
+            sys.exit()
+    
+    if inputfile == '' or outputfile == '':
+        print('Please specify input and output files, example usage:')
+        print ('test.py -i <inputfile> -o <outputfile> -x <horizontalDivide> -y <verticalDivide> -q <quality>')
+        sys.exit()
+
+    input_picture = Image.open(inputfile)
+
+    startTime = time.time()
     time.clock()    
 
-    splitByHorizontal = 256
-    splitByVertical = 144
+    picDeconstructTime = time.time()
     pictureW, pictureH = input_picture.size
 
     rowH = pictureH / splitByVertical
@@ -65,11 +103,19 @@ if __name__=='__main__':
         section = (0, rowH * section_index, pictureW, rowH * (section_index + 1))
         row = input_picture.crop(section)
         rows.append(row)
+    
+    elapsed = time.time() - picDeconstructTime
+    print('Image deconstruction:', elapsed)
 
+    threadingTime = time.time()
     with Pool(processes=4) as pool:
-        func = partial(buildRows, splitByHorizontal, splitByVertical)
+        func = partial(buildRows, splitByHorizontal, splitByVertical, quality)
         result_rows = pool.map(func, rows)
 
+    elapsed = time.time() - threadingTime
+    print('Threading:', elapsed)
+
+    assemblyTime = time.time()
     resultIMG = None
     for row in result_rows:
         if resultIMG is None:
@@ -77,6 +123,12 @@ if __name__=='__main__':
         else:
             resultIMG = np.vstack((resultIMG, row))
 
-    elapsed = time.time() - start
-    print('Starmap elapsed time:', elapsed)
-    cv2.imwrite('hmm.png', resultIMG)
+    elapsed = time.time() - assemblyTime
+    print('Image construction:', elapsed)
+
+    elapsed = time.time() - startTime
+    print('Total elapsed time:', elapsed)
+    cv2.imwrite(outputfile, resultIMG)
+
+if __name__=='__main__':
+    main(sys.argv[1:])
