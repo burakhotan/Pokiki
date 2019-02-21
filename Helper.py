@@ -10,12 +10,12 @@ class HelperOBJ:
     def __init__(self, dataPath):
         self.data = json.loads(open(dataPath).read())
 
-    def findNearestNeighbor(self, color, dominant=True):
+    def findNearestNeighbor(self, color, dominant=False):
         r, g, b = color[0], color[1], color[2]
         closest = None
 
         for index, imgName in enumerate(self.data):
-            dom_color = self.data[imgName]['dominant_color']
+            # dom_color = self.data[imgName]['dominant_color']
             avg_color = self.data[imgName]['average_color']
             if dominant:
                 r_candit, g_candit, b_candit = dom_color[0], dom_color[1], dom_color[2]
@@ -28,7 +28,7 @@ class HelperOBJ:
                 closeness = math.sqrt((r-r_candit)**2 + (g-g_candit)**2 + (b-b_candit)**2)
 
                 if closest is None or closest[0] >= closeness:
-                    closest = [closeness, index]
+                    closest = [closeness, imgName]
 
         return closest[1]
 
